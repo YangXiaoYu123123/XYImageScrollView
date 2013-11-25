@@ -19,6 +19,8 @@
 @property (nonatomic, assign) CGPoint oldPoint;
 @property (nonatomic, assign) NSInteger currentIndex;
 @property (nonatomic, assign) BOOL whetherScroll;
+
+@property (nonatomic, strong) UIPageControl *pageControl;
 @end
 
 @implementation XYImageScrollView
@@ -34,11 +36,15 @@
         frame.origin.x = 0;
         frame.origin.y = 0;
         self.scrollView.frame = frame;
-        
         [self addSubview:self.scrollView];
-        self.imageViewDic = [NSMutableDictionary dictionaryWithCapacity:2];
         
+        self.imageViewDic = [NSMutableDictionary dictionaryWithCapacity:2];
         self.imageArr = arr;
+        
+        self.pageControl = [[UIPageControl alloc] initWithFrame:CGRectMake(0, 0, self.frame.size.width, 20)];
+        self.pageControl.center = CGPointMake(self.center.x, self.frame.size.height-10);
+        self.pageControl.numberOfPages = self.imageArr.count;
+        [self addSubview:self.pageControl];
         
         [self setup];
     }
@@ -48,11 +54,20 @@
 - (void)setup{
     UIImageView *view = [[UIImageView alloc] initWithFrame:self.scrollView.frame];
     [view setImage:[UIImage imageNamed:[self.imageArr objectAtIndex:0]]];
+    CGRect frame = view.frame;
+    frame.origin.x = self.scrollView.bounds.size.width;
+    view.frame = frame;
+    
     [self.scrollView addSubview:view];
     [self.imageViewDic setValue:view forKey:AP];
-    self.oldPoint = self.scrollView.contentOffset;
     self.currentIndex = 0;
-    [self.scrollView setContentSize:CGSizeMake(self.scrollView.frame.size.width*self.imageArr.count, self.scrollView.frame.size.height)];
+    self.pageControl.currentPage = self.currentIndex;
+    
+    [self.scrollView setContentSize:CGSizeMake(self.scrollView.frame.size.width*(self.imageArr.count+2), self.scrollView.frame.size.height)];
+    self.whetherScroll = YES;
+    [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width, 0)];
+    self.whetherScroll = NO;
+    self.oldPoint = self.scrollView.contentOffset;
 }
 
 - (void)setImageViewFrame:(UIImageView *)view andWhetherLeft:(BOOL)left{
@@ -108,12 +123,34 @@
 }
 
 - (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView{
+    [self cycleScroll];
     if (self.oldPoint.x != scrollView.contentOffset.x) {
        [self changeImageDic];
     }
     self.oldPoint = scrollView.contentOffset;
-    self.currentIndex = scrollView.contentOffset.x/self.scrollView.frame.size.width;
+    self.currentIndex = scrollView.contentOffset.x/self.scrollView.frame.size.width-1;
+    self.pageControl.currentPage = self.currentIndex;
     self.whetherScroll = NO;
+}
+
+- (void)cycleScroll{
+    if (self.scrollView.contentOffset.x==0) {
+        self.whetherScroll = YES;
+        [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width*self.imageArr.count, 0) animated:NO];
+        self.whetherScroll = NO;
+        UIImageView *imageView = [self.imageViewDic objectForKey:DISAP];
+        CGRect frame = imageView.frame;
+        frame.origin.x = self.scrollView.frame.size.width*self.imageArr.count;
+        imageView.frame = frame;
+    }else if(self.scrollView.contentOffset.x == self.scrollView.frame.size.width*(self.imageArr.count+1)){
+        self.whetherScroll = YES;
+        [self.scrollView setContentOffset:CGPointMake(self.scrollView.frame.size.width, 0) animated:NO];
+        self.whetherScroll = NO;
+        UIImageView *imageView = [self.imageViewDic objectForKey:DISAP];
+        CGRect frame = imageView.frame;
+        frame.origin.x = self.scrollView.frame.size.width;
+        imageView.frame = frame;
+    }
 }
 
 - (void)dealloc{
